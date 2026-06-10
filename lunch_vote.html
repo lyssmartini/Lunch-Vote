@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Lunch Vote</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+  .header { background: #fff; border-bottom: 1px solid #e8e8e5; padding: 1.25rem 1.5rem; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .header p { font-size: 14px; color: #666; margin-top: 3px; }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+  .instructions { background: #fff; border: 1px solid #e8e8e5; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; font-size: 13px; color: #555; line-height: 1.6; }
+  .instructions strong { color: #1a1a1a; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-1 { background: #1D9E75; } .dot-2 { background: #378ADD; } .dot-skip { background: #E24B4A; }
+
+  .gf-filter-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; font-size: 13px; color: #555; cursor: pointer; }
+  .gf-filter-wrap input { cursor: pointer; width: 15px; height: 15px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+
+  .card { background: #fff; border: 1px solid #e8e8e5; border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .card:hover { border-color: #ccc; }
+  .card.pick1 { border: 2px solid #1D9E75; background: #f0faf6; }
+  .card.pick2 { border: 2px solid #378ADD; background: #eef5fc; }
+  .card.skip { border: 2px solid #E24B4A; background: #fef2f2; }
+
+  .card-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .card-cuisine { font-size: 12px; color: #888; margin-bottom: 7px; }
+
+  .gf-badge { display: inline-block; font-size: 10px; font-weight: 600; border-radius: 4px; padding: 2px 7px; margin-bottom: 7px; }
+  .gf-yes { background: #d4edda; color: #2d6a4f; }
+  .gf-unknown { background: #e8e8e5; color: #555; }
+
+  .card-footer { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .vote-pill { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+  .pill-1 { background: #c3eadb; color: #0f6e56; }
+  .pill-2 { background: #c5dff8; color: #185fa5; }
+  .pill-skip { background: #fdd; color: #a32d2d; }
+
+  .menu-btn { font-size: 11px; color: #888; background: transparent; border: 1px solid #e0e0de; border-radius: 4px; padding: 3px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+  .menu-btn:hover { border-color: #bbb; color: #444; }
+
+  .section-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+
+  .field { margin-bottom: 1rem; }
+  input[type="text"], textarea { width: 100%; border: 1px solid #e0e0de; border-radius: 8px; padding: 9px 12px; font-size: 14px; font-family: inherit; color: #1a1a1a; background: #fff; }
+  input[type="text"]:focus, textarea:focus { outline: none; border-color: #aaa; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .submit-btn { width: 100%; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 11px 20px; font-size: 14px; font-family: inherit; font-weight: 500; cursor: pointer; }
+  .submit-btn:hover { background: #333; }
+  .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  .msg { font-size: 13px; color: #555; margin-top: 10px; min-height: 18px; text-align: center; }
+
+  /* Admin / Results panel — hidden from voters */
+  .admin-panel { display: none; margin-top: 2rem; border-top: 1px solid #e8e8e5; padding-top: 1.5rem; }
+  .admin-panel.visible { display: block; }
+  .results-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 1rem; }
+  .result-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .result-name { min-width: 140px; color: #1a1a1a; }
+  .bar-wrap { flex: 1; background: #f0f0ee; border-radius: 4px; height: 18px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+  .bar-score { min-width: 34px; text-align: right; font-size: 12px; color: #888; font-weight: 600; }
+  .voters-list { font-size: 12px; color: #888; margin: 10px 0 6px; }
+  .comment-entry { font-size: 12px; color: #555; background: #f8f8f6; border-radius: 6px; padding: 7px 10px; margin-bottom: 6px; }
+  .comment-entry strong { color: #1a1a1a; }
+  .clear-btn { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; text-decoration: underline; margin-top: 8px; }
+
+  .admin-toggle-wrap { margin-top: 2rem; text-align: center; }
+  .admin-toggle-btn { font-size: 12px; color: #bbb; background: none; border: none; cursor: pointer; }
+  .admin-toggle-btn:hover { color: #888; }
+
+  .pin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .pin-modal.open { display: flex; }
+  .pin-box { background: #fff; border-radius: 12px; padding: 1.5rem; max-width: 300px; width: 90%; text-align: center; }
+  .pin-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .pin-box p { font-size: 13px; color: #666; margin-bottom: 14px; }
+  .pin-box input { width: 100%; border: 1px solid #e0e0de; border-radius: 8px; padding: 9px 12px; font-size: 16px; text-align: center; letter-spacing: 4px; font-family: inherit; margin-bottom: 10px; }
+  .pin-box input:focus { outline: none; border-color: #aaa; }
+  .pin-btn { width: 100%; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 14px; font-family: inherit; cursor: pointer; }
+  .pin-error { font-size: 12px; color: #E24B4A; margin-top: 6px; min-height: 16px; }
+
+  /* Menu modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 1.25rem; max-width: 440px; width: 90%; }
+  .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .modal-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #aaa; line-height: 1; }
+  .modal-gf { font-size: 13px; color: #555; background: #f8f8f6; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; line-height: 1.5; }
+  .modal-link { display: block; font-size: 13px; color: #1a6fb5; word-break: break-all; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    .legend { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍽️ Team Lunch Vote</h1>
+  <p>Pick your top 2 choices and optionally mark one to skip.</p>
+</div>
+
+<div class="container">
+
+  <div class="instructions">
+    <strong>How to vote:</strong> Tap a restaurant card once for your <strong>1st pick</strong>, again for <strong>2nd pick</strong>, again to <strong>skip</strong> it, once more to clear. Pick at least one, enter your name, and hit submit!
+  </div>
+
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-1"></span>1st pick (+2 pts)</span>
+    <span class="legend-item"><span class="dot dot-2"></span>2nd pick (+1 pt)</span>
+    <span class="legend-item"><span class="dot dot-skip"></span>Skip (−1 pt)</span>
+    <span class="legend-item"><span class="gf-badge gf-yes" style="margin:0">GF</span> Gluten-free options</span>
+    <span class="legend-item"><span class="gf-badge gf-unknown" style="margin:0">GF?</span> Unsure — check menu</span>
+  </div>
+
+  <label class="gf-filter-wrap">
+    <input type="checkbox" id="gf-only"> Show only spots with gluten-free options
+  </label>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="field">
+    <div class="section-label">Your name</div>
+    <input type="text" id="voter-name" placeholder="e.g. Jordan">
+  </div>
+
+  <div class="field">
+    <div class="section-label">Comments or suggestions (optional)</div>
+    <textarea id="voter-comment" placeholder="e.g. I'd also be happy with… / I have a preference for…"></textarea>
+  </div>
+
+  <button class="submit-btn" id="submit-btn" onclick="submitVote()">Submit my vote</button>
+  <p class="msg" id="msg"></p>
+
+  <div class="admin-toggle-wrap">
+    <button class="admin-toggle-btn" onclick="openPinModal()">View results</button>
+  </div>
+
+  <div class="admin-panel" id="admin-panel">
+    <p class="results-title">Results</p>
+    <div id="results-bars"></div>
+    <p class="voters-list" id="voters-list"></p>
+    <div id="comments-block"></div>
+    <button class="clear-btn" onclick="clearAllVotes()">Reset all votes</button>
+  </div>
+
+</div>
+
+<!-- Pin modal -->
+<div class="pin-modal" id="pin-modal">
+  <div class="pin-box">
+    <h3>Results are private</h3>
+    <p>Enter the admin PIN to view results.</p>
+    <input type="password" id="pin-input" placeholder="••••" maxlength="6" onkeydown="if(event.key==='Enter')checkPin()">
+    <button class="pin-btn" onclick="checkPin()">View results</button>
+    <p class="pin-error" id="pin-error"></p>
+  </div>
+</div>
+
+<!-- Menu modal -->
+<div class="modal-overlay" id="menu-modal" onclick="closeMenuModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <p class="modal-title" id="menu-modal-title"></p>
+      <button class="modal-close" onclick="document.getElementById('menu-modal').classList.remove('open')">×</button>
+    </div>
+    <div class="modal-gf" id="menu-modal-gf"></div>
+    <p style="font-size:13px;color:#888;margin-bottom:6px">Tap to open the menu:</p>
+    <a class="modal-link" id="menu-modal-link" href="#" target="_blank"></a>
+  </div>
+</div>
+
+<script>
+const ADMIN_PIN = "1234";
+
+const RESTAURANTS = [
+  { id: 1, name: "Cactus Club",       cuisine: "Upscale Casual",  gf: "yes",     gfNote: "Has some gluten-free options — may require customization when ordering.", url: "https://www.cactusclubcafe.com/locations/barlow-trail/menu/food/" },
+  { id: 2, name: "Joey's",            cuisine: "Upscale Casual",  gf: "yes",     gfNote: "Has some gluten-free options — may require customization when ordering.", url: "https://joeyrestaurants.com/menu/joey-barlow" },
+  { id: 3, name: "Moxie's",           cuisine: "Upscale Casual",  gf: "yes",     gfNote: "Has gluten-free options and some customizations available.",              url: "https://moxies.com/restaurants/calgary-barlow/menus/#menu-section-category-summer-feature-menu--summer-feature-drinks" },
+  { id: 4, name: "Boston Pizza",      cuisine: "Pizza & Pasta",   gf: "yes",     gfNote: "Has gluten-free options available.",                                      url: "https://bostonpizza.com/en/menu.html" },
+  { id: 5, name: "Quynh Vietnamese",  cuisine: "Vietnamese",      gf: "unknown", gfNote: "Menu doesn't specify — worth checking with the restaurant if needed.",    url: "https://www.quynh.ca/menu.htm" },
+  { id: 6, name: "Grace of India",    cuisine: "Indian",          gf: "unknown", gfNote: "Menu doesn't specify clearly — many Indian dishes are naturally GF but worth confirming.", url: "https://graceindia.ca/our-menu/" },
+  { id: 7, name: "Great Taste Chinese", cuisine: "Chinese",       gf: "unknown", gfNote: "No GF info available — worth confirming with the restaurant.",            url: "http://greattastecalgary.com/menu.html" }
+];
+
+let votes = {};
+let myVote = { pick1: null, pick2: null, skip: null };
+let gfOnly = false;
+let adminUnlocked = false;
+
+function loadVotes() {
+  try { votes = JSON.parse(localStorage.getItem('lunchvotes_v1') || '{}'); } catch { votes = {}; }
+}
+function saveVotes() {
+  try { localStorage.setItem('lunchvotes_v1', JSON.stringify(votes)); } catch {}
+}
+
+function getState(id) {
+  if (myVote.pick1 === id) return 'pick1';
+  if (myVote.pick2 === id) return 'pick2';
+  if (myVote.skip === id) return 'skip';
+  return '';
+}
+
+function cycleVote(id) {
+  const cur = getState(id);
+  if (cur === 'pick1') { myVote.pick1 = null; myVote.pick2 = id; }
+  else if (cur === 'pick2') { myVote.pick2 = null; myVote.skip = id; }
+  else if (cur === 'skip') { myVote.skip = null; }
+  else {
+    if (myVote.pick1 === null) myVote.pick1 = id;
+    else if (myVote.pick2 === null) myVote.pick2 = id;
+    else if (myVote.skip === null) myVote.skip = id;
+  }
+  render();
+}
+
+function render() {
+  const list = gfOnly ? RESTAURANTS.filter(r => r.gf === 'yes') : RESTAURANTS;
+  document.getElementById('grid').innerHTML = list.map(r => {
+    const st = getState(r.id);
+    const badge = r.gf === 'yes'
+      ? '<span class="gf-badge gf-yes">GF</span>'
+      : '<span class="gf-badge gf-unknown">GF?</span>';
+    return `<div class="card ${st}" onclick="cycleVote(${r.id})">
+      ${badge}
+      <p class="card-name">${r.name}</p>
+      <p class="card-cuisine">${r.cuisine}</p>
+      <div class="card-footer" onclick="event.stopPropagation()">
+        ${st === 'pick1' ? '<span class="vote-pill pill-1">1st pick</span>' : ''}
+        ${st === 'pick2' ? '<span class="vote-pill pill-2">2nd pick</span>' : ''}
+        ${st === 'skip'  ? '<span class="vote-pill pill-skip">Skip</span>'  : ''}
+        <button class="menu-btn" onclick="openMenu(${r.id})">&#9776; Menu</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openMenu(id) {
+  const r = RESTAURANTS.find(x => x.id === id);
+  document.getElementById('menu-modal-title').textContent = r.name;
+  document.getElementById('menu-modal-gf').innerHTML = '<strong>Gluten-free:</strong> ' + r.gfNote;
+  const link = document.getElementById('menu-modal-link');
+  link.href = r.url;
+  link.textContent = r.url;
+  document.getElementById('menu-modal').classList.add('open');
+}
+function closeMenuModal(e) { if (e.target.id === 'menu-modal') document.getElementById('menu-modal').classList.remove('open'); }
+
+function submitVote() {
+  const name = document.getElementById('voter-name').value.trim();
+  const comment = document.getElementById('voter-comment').value.trim();
+  const msg = document.getElementById('msg');
+  if (!name) { msg.textContent = 'Please enter your name before submitting.'; return; }
+  if (!myVote.pick1 && !myVote.pick2) { msg.textContent = 'Please pick at least one restaurant.'; return; }
+  votes[name] = { ...myVote, comment };
+  saveVotes();
+  msg.textContent = 'Thanks ' + name + '! Your vote has been saved. ✓';
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Vote submitted ✓';
+  if (adminUnlocked) renderResults();
+}
+
+function openPinModal() { document.getElementById('pin-modal').classList.add('open'); document.getElementById('pin-input').focus(); }
+
+function checkPin() {
+  const val = document.getElementById('pin-input').value.trim();
+  if (val === ADMIN_PIN) {
+    document.getElementById('pin-modal').classList.remove('open');
+    adminUnlocked = true;
+    document.getElementById('admin-panel').classList.add('visible');
+    renderResults();
+  } else {
+    document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
+  }
+}
+
+function renderResults() {
+  const allVoters = Object.keys(votes);
+  if (allVoters.length === 0) {
+    document.getElementById('results-bars').innerHTML = '<p style="font-size:13px;color:#888">No votes yet.</p>';
+    document.getElementById('voters-list').textContent = '';
+    document.getElementById('comments-block').innerHTML = '';
+    return;
+  }
+  const scores = {};
+  RESTAURANTS.forEach(r => scores[r.id] = 0);
+  allVoters.forEach(voter => {
+    const v = votes[voter];
+    if (v.pick1 !== null && scores[v.pick1] !== undefined) scores[v.pick1] += 2;
+    if (v.pick2 !== null && scores[v.pick2] !== undefined) scores[v.pick2] += 1;
+    if (v.skip  !== null && scores[v.skip]  !== undefined) scores[v.skip]  -= 1;
+  });
+  const maxScore = Math.max(...Object.values(scores), 1);
+  const sorted = [...RESTAURANTS].sort((a, b) => scores[b.id] - scores[a.id]);
+  document.getElementById('results-bars').innerHTML = sorted.map(r => {
+    const sc = scores[r.id] || 0;
+    const pct = Math.max(0, Math.round((sc / maxScore) * 100));
+    const color = sc > 0 ? '#1D9E75' : sc < 0 ? '#E24B4A' : '#aaa';
+    return `<div class="result-row">
+      <span class="result-name">${r.name}</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="bar-score">${sc > 0 ? '+' : ''}${sc}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('voters-list').textContent = 'Votes from: ' + allVoters.join(', ');
+  const comments = allVoters.filter(v => votes[v].comment)
+    .map(v => `<div class="comment-entry"><strong>${v}:</strong> ${votes[v].comment}</div>`).join('');
+  document.getElementById('comments-block').innerHTML = comments
+    ? '<div class="section-label" style="margin:10px 0 6px">Comments</div>' + comments : '';
+}
+
+function clearAllVotes() {
+  if (!confirm('Reset all votes? This cannot be undone.')) return;
+  votes = {};
+  saveVotes();
+  renderResults();
+}
+
+document.getElementById('gf-only').addEventListener('change', e => { gfOnly = e.target.checked; render(); });
+
+loadVotes();
+render();
+</script>
+</body>
+</html>
